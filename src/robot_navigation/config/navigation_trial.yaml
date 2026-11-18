@@ -1,0 +1,168 @@
+points: ../map/taught_points.json
+map: ../map/field_map.yaml
+arrival_calibration_file: ../map/arrival_calibrations.json
+start: 起停点
+single_point_route: 1
+laser_geometry:
+  current_extrinsic: [0.1451, -0.0025, 3.14159265]
+  legacy_extrinsic: [0.10, 0.0, 3.14159265]
+  legacy_session: '20261118_131728_602073'
+task_dwell: 2.0
+precision:
+  position_tolerance: 0.015
+  heading_tolerance_deg: 3.0
+  confirm_scans: 4
+  stable_position: 0.003
+  stable_heading_deg: 0.5
+  settle_timeout: 5.0
+  max_estimator_difference: 0.10
+  max_estimator_heading_deg: 8.0
+  latch_latency: 0.08
+  max_corrections: 3
+  max_correction_distance: 0.12
+  correction_speed: 0.14
+  turn_speed: 0.4
+  motion_timeout: 4.0
+recognition:
+  enabled: false
+  street_views:
+    A: [社区1, 社区2, 社区5&6]
+    B: [社区3, 楼宇C&社区4&红绿灯2, 社区5&6]
+  parking_ebike:
+    view_points: [共享1, 共享2]
+    row_dist_range: [0.30, 0.50]
+    merge_dist: 0.10
+    max_range: 1.0
+    box_margin: 0.03
+    conf: 0.40
+    frames: 3
+    cam_x: 0.12
+    cam_y: 0.0
+    cam_yaw_deg: 0.0
+    intrinsics: [959.2506, 959.2784, 648.8432, 481.1178]
+    threads: 2
+limits:
+  forward: 0.34
+  strafe: 0.24
+  reverse: 0.24
+  final_reverse: 0.10
+  angular: 1.3
+  acceleration: 0.50
+  lateral_acceleration: 0.35
+  angular_acceleration: 1.5
+  deceleration: 0.18
+  command_delay: 0.6
+  stop_latency: 0.05
+  position_tolerance: 0.02
+  final_tolerance: 0.010
+  traffic_speed: 0.20
+branch:
+  origin: 拐点2
+  toward: 社区5&6
+  length: 0.55
+  width: 0.45
+  min_distance: 0.20
+  min_points: 4
+  blocked_route: 1
+  clear_route: 2
+pending: []
+common:
+  - {move: 红绿灯1, mode: forward, speed: 0.20}
+  - {face_point: 红绿灯1}
+  - {task: traffic_light_1}
+  - {move: 社区1, mode: forward}
+  - {face_point: 社区1}
+  - {task: crowd_A}
+  - {move: 拐点1, mode: right}
+  - {move: 社区2, mode: forward}
+  - {face_point: 社区2}
+  - {task: crowd_A}
+  - {move: 拐点2, mode: right}
+  - {face_point: 拐点2}
+  - {task: prohibited_sign}
+route1:
+  - {move: 社区3, mode: right}
+  - {face_point: 社区3}
+  - {task: crowd_B}
+  - {move: 楼宇D, mode: right}
+  - {face_point: 楼宇D}
+  - {task: building_D}
+  - {move: 拐点3, mode: right}
+  - {turn: 90}
+  - {move: 温度湿度表, mode: right}
+  - {face_point: 温度湿度表}
+  - {task: meter}
+  - {move: 拐点4, mode: right}
+  - {move: 楼宇C&社区4&红绿灯2, mode: forward}
+  - {turn: 90}
+  - {task: crowd_B}
+  - {turn: 180}
+  - {task: building_C}
+  - {move: 楼宇A&拐点5, mode: left}
+  - {face_point: 楼宇A&拐点5}
+  - {task: building_A}
+  - {move: 社区5&6, mode: reverse}
+  - {turn: 90}
+  - {task: crowd_A}
+  - {turn: 180}
+  - {task: crowd_B}
+  - {move: 楼宇A&拐点5, mode: left}
+  - {move: 楼宇C&社区4&红绿灯2, mode: forward}
+  - {task: traffic_light_2}
+  - {move: 拐点4, mode: forward}
+  - {turn: 90}
+route2:
+  - {move: 社区5&6, mode: forward}
+  - {turn: 90}
+  - {task: crowd_A}
+  - {turn: -180}
+  - {task: crowd_B}
+  - {move: 楼宇A&拐点5, mode: left}
+  - {face_point: 楼宇A&拐点5}
+  - {task: building_A}
+  - {move: 楼宇C&社区4&红绿灯2, mode: right}
+  - {turn: 90}
+  - {task: building_C}
+  - {turn: -180}
+  - {task: crowd_B}
+  - {face: 90}
+  - {task: traffic_light_2}
+  - {move: 拐点4, mode: forward}
+  - {turn: -180}
+  - {move: 温度湿度表, mode: left}
+  - {face_point: 温度湿度表}
+  - {task: meter}
+  - {move: 拐点3, mode: left}
+  - {turn: -90}
+  - {move: 楼宇D, mode: left}
+  - {face_point: 楼宇D}
+  - {task: building_D}
+  - {move: 社区3, mode: left}
+  - {face_point: 社区3}
+  - {task: crowd_B}
+  - {move: 拐点3, mode: right}
+tail:
+  - {move: 拐点6&车牌1, mode: forward}
+  - {face_point: 拐点6&车牌1}
+  - {task: plate_1}
+  - {move: 车牌2&垃圾桶, mode: left}
+  - {task: plate_2}
+  - {move: 车牌3, mode: left}
+  - {face_point: 车牌3}
+  - {task: plate_3}
+  - {turn: 180, route2_turn: -180}
+  - {move: 车牌2&垃圾桶, mode: left}
+  - {task: trash}
+  - {move: 楼宇B, mode: right}
+  - {face_point: 楼宇B}
+  - {task: building_B}
+  - {turn: -180}
+  - {move: 共享1, mode: left}
+  - {face_point: 共享1}
+  - {task: ebike}
+  - {move: 共享2, mode: left}
+  - {face_point: 共享2}
+  - {task: ebike}
+  - {move: 拐点7, mode: left}
+  - {turn: 180}
+  - {move: 起停点, mode: reverse, final: true}

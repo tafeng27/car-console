@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>小车遥控 / 建图 / 定点</title>
+<style>
+  :root{
+    --bg:#15171c; --panel:#1d2027; --panel2:#23262f; --line:#31353f;
+    --txt:#e8eaf0; --dim:#9aa0ad; --accent:#ffb028; --ok:#50e68c; --bad:#ff5b5b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+       font:14px/1.5 "Segoe UI","Microsoft YaHei",system-ui,sans-serif}
+  header{display:flex;align-items:center;gap:16px;padding:10px 16px;
+         background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
+  header h1{font-size:16px;margin:0;font-weight:600;letter-spacing:.5px}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--bad);display:inline-block;margin-right:6px}
+  .dot.on{background:var(--ok)}
+  .tag{color:var(--dim);font-size:12px}
+  .spacer{flex:1}
+  .estop{background:#c62828;border:none;color:#fff;font-size:15px;font-weight:700;
+         padding:9px 22px;border-radius:8px;cursor:pointer;letter-spacing:1px}
+  .estop:active{background:#8e1f1f}
+  main{display:grid;grid-template-columns:1fr 380px;gap:12px;padding:12px;align-items:start}
+  @media (max-width:1100px){main{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .view{position:relative;background:#0d0f13;border-radius:10px;overflow:hidden;
+        border:1px solid var(--line);display:flex;justify-content:center;align-items:center;min-height:320px}
+  .view img{width:100%;height:auto;display:block;image-rendering:auto}
+  .view .offline{position:absolute;inset:0;display:none;place-items:center;background:#0d0f13ee;
+        color:var(--dim);font-size:13px;text-align:center;padding:20px}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;color:var(--dim);font-size:12px;margin-top:8px}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+  h3{margin:0 0 8px;font-size:13px;color:var(--dim);font-weight:600;letter-spacing:.5px}
+  .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
+  .pad button,.row button{background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+        border-radius:8px;padding:12px 6px;font-size:13px;cursor:pointer;user-select:none;
+        transition:background .08s,border-color .08s}
+  .pad button:hover,.row button:hover{border-color:#4a505e}
+  .pad button.active{background:var(--accent);color:#15171c;border-color:var(--accent);font-weight:700}
+  .pad .stop{background:#2a2f3a}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}
+  .seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:8px;
+       overflow:hidden;margin-bottom:10px}
+  .seg button{flex:1;background:none;border:none;color:var(--dim);padding:8px;cursor:pointer;font-size:12.5px}
+  .seg button.on{background:#2f3542;color:var(--txt);font-weight:600}
+  .slider{display:grid;grid-template-columns:70px 1fr 56px;gap:8px;align-items:center;margin-bottom:6px;font-size:12.5px}
+  input[type=range]{width:100%;accent-color:var(--accent)}
+  .val{text-align:right;color:var(--accent);font-variant-numeric:tabular-nums}
+  .kv{display:grid;grid-template-columns:88px 1fr;gap:2px 8px;font-size:12.5px}
+  .kv div:nth-child(odd){color:var(--dim)}
+  .kv div:nth-child(even){font-variant-numeric:tabular-nums}
+  .teach{display:flex;gap:6px;margin:10px 0}
+  .teach input{flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+        border-radius:8px;padding:8px 10px;font-size:13px}
+  .teach button{background:#2e7d32;border:none;color:#fff;border-radius:8px;padding:8px 14px;
+        cursor:pointer;font-size:13px;font-weight:600}
+  .teach button:active{background:#1b5e20}
+  .pts{max-height:320px;overflow:auto;border-top:1px solid var(--line);margin-top:6px}
+  .pt{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;
+      padding:5px 2px;border-bottom:1px solid #262a33;font-size:12.5px}
+  .heads{padding:0 0 5px 14px;border-bottom:1px solid #262a33}
+  .hd{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;
+      font-size:11.5px;color:var(--dim);padding:2px 0;font-variant-numeric:tabular-nums}
+  .hd button{background:none;border:none;color:#7b8290;cursor:pointer;font-size:11.5px}
+  .hd button:hover{color:var(--bad)}
+  .pt b{color:var(--ok);font-weight:600}
+  .pt span{color:var(--dim);font-variant-numeric:tabular-nums}
+  .pt button{background:none;border:none;color:#7b8290;cursor:pointer;font-size:12px}
+  .pt button:hover{color:var(--bad)}
+  .hint{color:var(--dim);font-size:11.5px;line-height:1.6;margin-top:8px}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#2f3542;
+         border:1px solid var(--line);color:var(--txt);padding:8px 16px;border-radius:8px;
+         font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
+  .toast.show{opacity:1}
+  kbd{background:#2a2f3a;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;
+      padding:1px 5px;font-size:11.5px;font-family:inherit}
+</style>
+</head>
+<body>
+<header>
+  <h1>小车遥控 · 建图 · 定点</h1>
+  <span class="tag"><span id="dot" class="dot"></span><span id="conn">连接中…</span></span>
+  <span class="tag">位姿 <b id="pose">-</b></span>
+  <span class="tag">雷达 <b id="hz">-</b> Hz</span>
+  <span class="tag">模式 <b id="mode">-</b></span>
+  <span class="spacer"></span>
+  <button class="estop" onclick="fullStop()">全停 (Space)</button>
+</header>
+
+<main>
+  <section>
+    <div class="view card" style="padding:0">
+      <img id="view" alt="map stream">
+      <div class="offline" id="offline">画面断了，正在重连…<br><span id="offdetail"></span></div>
+    </div>
+    <div class="legend">
+      <span><i style="background:#d6d6d6"></i>空地</span>
+      <span><i style="background:#3a3c44"></i>未探索</span>
+      <span><i style="background:#121212"></i>墙/障碍</span>
+      <span><i style="background:#ff4848"></i>激光</span>
+      <span><i style="background:#ffb028"></i>车（箭头=车头）</span>
+      <span><i style="background:#50e68c"></i>已定点位</span>
+    </div>
+  </section>
+
+  <aside>
+    <div class="card" style="margin-bottom:12px">
+      <h3>运动状态</h3>
+      <div class="seg">
+        <button id="modeHold" class="on" onclick="setMode('hold')">按住走（松手停）</button>
+        <button id="modeToggle" onclick="setMode('toggle')">按一下切换</button>
+      </div>
+      <div class="pad">
+        <span></span>
+        <button id="bF" data-k="f">↑ 前进</button>
+        <span></span>
+        <button id="bL" data-k="l">← 左转</button>
+        <button class="stop" id="bS" data-k="s">停</button>
+        <button id="bR" data-k="r">右转 →</button>
+        <span></span>
+        <button id="bB" data-k="b">↓ 后退</button>
+        <span></span>
+      </div>
+      <div class="row">
+        <button id="bSL" data-k="sl">⤆ 左平移</button>
+        <button id="bSR" data-k="sr">右平移 ⤇</button>
+      </div>
+      <div class="slider"><span>前进速度</span><input id="vlin" type="range" min="0.03" max="0.35" step="0.01" value="0.12"><span class="val" id="vlinV">0.12</span></div>
+      <div class="slider"><span>平移速度</span><input id="vstf" type="range" min="0.03" max="0.30" step="0.01" value="0.10"><span class="val" id="vstfV">0.10</span></div>
+      <div class="slider"><span>转向速度</span><input id="vang" type="range" min="0.15" max="1.20" step="0.05" value="0.50"><span class="val" id="vangV">0.50</span></div>
+      <div class="hint">
+        键盘：<kbd>W</kbd><kbd>S</kbd> 前后 · <kbd>A</kbd><kbd>D</kbd> 转向 · <kbd>Q</kbd><kbd>E</kbd> 平移 · <kbd>Space</kbd> 全停<br>
+        底盘实测：新指令约 <b>0.6 秒</b>后才动，停车是立刻的；空闲 0.5 秒自动零速。
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:12px">
+      <h3>定点（当前位置）</h3>
+      <div id="modewarn" style="display:none;background:#4a3a12;border:1px solid #7a5f1a;color:#ffd88a;
+           border-radius:8px;padding:7px 10px;font-size:12px;margin-bottom:8px"></div>
+      <div class="teach">
+        <input id="name" placeholder="点位名，例如 step1" autocomplete="off">
+        <button onclick="teach()">记录点位</button>
+      </div>
+      <div class="teach">
+        <input id="note" placeholder="朝向备注，例如 正对仪表（可空）" autocomplete="off">
+        <button onclick="addHeading()" style="background:#1f6fb2">加朝向</button>
+      </div>
+      <div class="hint" style="margin:-2px 0 8px">
+        一个点位可以有多个朝向：把车停到点位、转到想要的角度，点“加朝向”。名字框里填已有点位名即可追加。
+      </div>
+      <div style="display:flex;gap:6px">
+        <button onclick="saveMap()" style="flex:1;background:#2a2f3a;border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:7px;cursor:pointer;font-size:12.5px">存一版地图</button>
+        <button onclick="relocalize()" id="btnReloc" style="flex:1;background:#4a3a12;border:1px solid #7a5f1a;color:#ffd88a;border-radius:8px;padding:7px;cursor:pointer;font-size:12.5px">重新定位</button>
+        <button onclick="copyYaml()" style="flex:1;background:#2a2f3a;border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:7px;cursor:pointer;font-size:12.5px">复制点位 YAML</button>
+      </div>
+      <div class="pts" id="pts"></div>
+      <div class="hint" id="ptfile">-</div>
+    </div>
+
+    <div class="card">
+      <h3>状态</h3>
+      <div class="kv">
+        <div>位姿 x, y</div><div id="s_xy">-</div>
+        <div>朝向</div><div id="s_yaw">-</div>
+        <div>雷达</div><div id="s_hz">-</div>
+        <div>地图</div><div id="s_map">-</div>
+        <div>指令 vx,vy,w</div><div id="s_cmd">-</div>
+        <div>底盘反馈</div><div id="s_vel">-</div>
+        <div>点位</div><div id="s_pts">-</div>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const S = { mode:'hold', keys:{f:0,b:0,l:0,r:0,sl:0,sr:0}, lastCmd:0, alive:false, points:[] };
+const el = id => document.getElementById(id);
+const send = params => fetch('/api/cmd?' + new URLSearchParams(params)).catch(()=>{});
+
+function toast(msg, ms=1800){
+  const t = el('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('show'), ms);
+}
+
+/* ---------------- 速度计算与下发 ---------------- */
+function velocities(){
+  const vlin = parseFloat(el('vlin').value), vstf = parseFloat(el('vstf').value), vang = parseFloat(el('vang').value);
+  const k = S.keys;
+  return {
+    vx: ((k.f?1:0) - (k.b?1:0)) * vlin,
+    vy: ((k.sl?1:0) - (k.sr?1:0)) * vstf,
+    wz: ((k.l?1:0) - (k.r?1:0)) * vang
+  };
+}
+function stopAll(){
+  for (const k in S.keys) S.keys[k] = 0;
+  paint();
+  fetch('/api/stop').catch(()=>{});
+}
+function fullStop(){ stopAll(); toast('已全停'); }
+
+function tick(){
+  const v = velocities();
+  const moving = v.vx || v.vy || v.wz;
+  if (moving) send({vx:v.vx, vy:v.vy, wz:v.wz});
+  else if (S.alive && Date.now() - S.lastCmd > 300) { /* 停着就不用刷，后端自己会保持零速 */ }
+}
+setInterval(tick, 100);
+
+/* ---------------- 按键状态 ---------------- */
+const KEYMAP = { 'w':'f', 'arrowup':'f', 's':'b', 'arrowdown':'b',
+                 'a':'l', 'arrowleft':'l', 'd':'r', 'arrowright':'r',
+                 'q':'sl', 'e':'sr' };
+
+function setKey(k, on){
+  if (!k) return;
+  if (k === 's'){ stopAll(); return; }
+  if (S.mode === 'hold') S.keys[k] = on ? 1 : 0;
+  else if (on) S.keys[k] = S.keys[k] ? 0 : 1;   // toggle：按下翻转
+  paint();
+  S.lastCmd = Date.now();
+  const v = velocities();
+  if (v.vx || v.vy || v.wz) send({vx:v.vx, vy:v.vy, wz:v.wz});
+  else fetch('/api/stop').catch(()=>{});        // 全松开了就立刻停，不等后端超时
+}
+
+document.addEventListener('keydown', e=>{
+  const k = KEYMAP[e.key.toLowerCase()];
+  if (k || e.code === 'Space'){ e.preventDefault(); }
+  if (e.code === 'Space'){ stopAll(); return; }
+  if (e.repeat) return;
+  setKey(k, true);
+});
+document.addEventListener('keyup', e=>{
+  const k = KEYMAP[e.key.toLowerCase()];
+  if (k) { e.preventDefault(); if (S.mode === 'hold') setKey(k, false); }
+});
+window.addEventListener('blur', ()=>{ stopAll(); });
+document.addEventListener('visibilitychange', ()=>{ if (document.hidden) stopAll(); });
+
+/* ---------------- 屏幕按钮 ---------------- */
+document.querySelectorAll('[data-k]').forEach(btn=>{
+  const k = btn.dataset.k;
+  btn.addEventListener('mousedown', ev=>{ ev.preventDefault(); setKey(k, true); });
+  btn.addEventListener('mouseup', ()=>{ if (S.mode==='hold') setKey(k, false); });
+  btn.addEventListener('mouseleave', ()=>{ if (S.mode==='hold') setKey(k, false); });
+  btn.addEventListener('touchstart', ev=>{ ev.preventDefault(); setKey(k, true); }, {passive:false});
+  btn.addEventListener('touchend', ev=>{ ev.preventDefault(); setKey(k, false); }, {passive:false});
+});
+
+function paint(){
+  const k = S.keys;
+  el('bF').classList.toggle('active', !!k.f);
+  el('bB').classList.toggle('active', !!k.b);
+  el('bL').classList.toggle('active', !!k.l);
+  el('bR').classList.toggle('active', !!k.r);
+  el('bSL').classList.toggle('active', !!k.sl);
+  el('bSR').classList.toggle('active', !!k.sr);
+}
+function setMode(m){
+  S.mode = m;
+  el('modeHold').classList.toggle('on', m==='hold');
+  el('modeToggle').classList.toggle('on', m==='toggle');
+  stopAll();
+  toast(m==='hold' ? '按住走：松手/松键即停' : '按一下切换：再按一次停');
+}
+
+/* ---------------- 滑块显示 ---------------- */
+['vlin','vstf','vang'].forEach(id=>{
+  const v = el(id + 'V');
+  el(id).addEventListener('input', ()=>{ v.textContent = parseFloat(el(id).value).toFixed(2); });
+  v.textContent = parseFloat(el(id).value).toFixed(2);
+});
+
+/* ---------------- 状态轮询 ---------------- */
+async function poll(){
+  try{
+    const r = await fetch('/api/state', {cache:'no-store'});
+    const st = await r.json();
+    S.alive = true;
+    el('dot').classList.add('on'); el('conn').textContent = '已连接';
+    const p = st.pose;
+    if (p){
+      el('pose').textContent = `${p.x.toFixed(2)}, ${p.y.toFixed(2)}, ${p.yaw.toFixed(0)}°`;
+      el('s_xy').textContent = `${p.x.toFixed(3)}, ${p.y.toFixed(3)}`;
+      el('s_yaw').textContent = p.yaw.toFixed(1) + '°';
+    } else {
+      el('pose').textContent = '无定位'; el('s_xy').textContent = '-'; el('s_yaw').textContent = '-';
+    }
+    el('hz').textContent = st.scan_hz.toFixed(1);
+    const MODE_TXT = {mapping:'建图中', localize:'定位中（可打点）', none:'未启动'};
+    const md = st.mode || 'none';
+    el('mode').textContent = MODE_TXT[md] || md;
+    el('mode').style.color = md === 'localize' ? 'var(--ok)' : (md === 'mapping' ? '#ffb028' : 'var(--bad)');
+    const warnBox = el('modewarn');
+    if (md === 'mapping') {
+      warnBox.style.display = 'block';
+      warnBox.innerHTML = '现在是<b>建图模式</b>：这里打的点会和最终保存的地图不自洽（回环会让 map→odom 跳变）。'
+        + '<br>正式点位请：保存地图 → <code>bash ~/final_ws/tools/teach_start.sh</code> 启动 AMCL → 记录点位。';
+    } else if (md === 'none') {
+      warnBox.style.display = 'block';
+      warnBox.innerHTML = '启动建图：<code>bash ~/final_ws/tools/map_start.sh</code>'
+        + '；启动定位：<code>bash ~/final_ws/tools/teach_start.sh</code>。';
+    } else {
+      warnBox.style.display = 'none';
+    }
+    el('s_hz').textContent = st.scan_hz.toFixed(1) + ' Hz';
+    el('s_map').textContent = st.map ? `${st.map.w}×${st.map.h} @ ${st.map.res} m` : '还没有 /map';
+    const c = st.cmd;
+    el('s_cmd').textContent = `${c.vx.toFixed(2)}, ${c.vy.toFixed(2)}, ${c.wz.toFixed(2)}`;
+    const v = st.vel;
+    el('s_vel').textContent = v ? `${v.vx.toFixed(2)}, ${v.vy.toFixed(2)}, ${v.wz.toFixed(2)}` : '-';
+    el('ptfile').textContent = '文件：' + st.points_file;
+    renderPoints(st.points);
+  }catch(e){
+    S.alive = false;
+    el('dot').classList.remove('on'); el('conn').textContent = '断线';
+  }
+}
+setInterval(poll, 500);
+
+function renderPoints(pts){
+  S.points = pts;
+  el('s_pts').textContent = pts.length + ' 个';
+  const box = el('pts');
+  if (!pts.length){ box.innerHTML = '<div class="pt"><span style="color:#6b7280">还没有点位</span></div>'; return; }
+  box.innerHTML = pts.map(p=>{
+    const heads = p.headings || [];
+    const rows = heads.map(h=>`<div class="hd">
+        <span>朝向 ${h.yaw.toFixed(1)}°${h.note ? ' · ' + esc(h.note) : ''}${h.validated ? '' : ' · 未校验'}</span>
+        <button data-act="delheading" data-name="${esc(p.name)}" data-index="${h.index}">删</button></div>`).join('');
+    return `<div class="pt"><b>${esc(p.name)}</b>
+        <span>${p.x.toFixed(2)}, ${p.y.toFixed(2)} · ${heads.length} 个朝向</span>
+        <button data-act="delpoint" data-name="${esc(p.name)}">删除</button></div>`
+        + (rows ? `<div class="heads">${rows}</div>` : '');
+  }).join('');
+}
+
+function esc(text){
+  return String(text).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                     .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+el('pts').addEventListener('click', ev=>{
+  const btn = ev.target.closest('button[data-act]');
+  if (!btn) return;
+  if (btn.dataset.act === 'delpoint') delPoint(btn.dataset.name);
+  if (btn.dataset.act === 'delheading') delHeading(btn.dataset.name, parseInt(btn.dataset.index, 10));
+});
+
+/* ---------------- 定点 ---------------- */
+async function teach(){
+  const name = el('name').value.trim();
+  if (!name){ toast('先输入点名'); return; }
+  const r = await fetch('/api/teach?name=' + encodeURIComponent(name));
+  const j = await r.json();
+  if (j.ok){ toast(j.msg || ('已记录 ' + name), 3000); renderPoints(j.points || S.points); }
+  else toast('失败：' + (j.err || '未知'), 3000);
+}
+async function addHeading(){
+  const name = el('name').value.trim();
+  if (!name){ toast('先在名字框里填点位名'); return; }
+  const note = el('note').value.trim();
+  const r = await fetch('/api/teach/heading?name=' + encodeURIComponent(name) + '&note=' + encodeURIComponent(note));
+  const j = await r.json();
+  if (j.ok){ toast(j.msg || ('已为 ' + name + ' 加一个朝向'), 4000); el('note').value = ''; poll(); }
+  else toast('失败：' + (j.err || '未知'), 4000);
+}
+async function delHeading(name, index){
+  if (!confirm('删除 ' + name + ' 的第 ' + (index + 1) + ' 个朝向？')) return;
+  const r = await fetch('/api/headings/delete?name=' + encodeURIComponent(name) + '&index=' + index);
+  const j = await r.json();
+  toast(j.msg || (j.ok ? '已删除' : '删除失败'), 2500);
+  poll();
+}
+async function delPoint(name){
+  if (!confirm('删除点位 ' + name + ' 和它的全部朝向？')) return;
+  const r = await fetch('/api/points/delete?name=' + encodeURIComponent(name));
+  const j = await r.json();
+  toast(j.ok ? '已删除 ' + name : '没找到这个点');
+  poll();
+}
+function copyYaml(){
+  const txt = S.points.map(p=>`  - {name: ${p.name}, x: ${p.x.toFixed(3)}, y: ${p.y.toFixed(3)}, look: ${p.yaw.toFixed(1)}, kind: stop}`).join('\n');
+  navigator.clipboard.writeText(txt).then(
+    ()=>toast('已复制到剪贴板（可直接贴进 route2_drive.yaml）'),
+    ()=>toast('复制失败：浏览器不允许剪贴板'));
+}
+async function relocalize(){
+  if (!confirm('重新定位会把粒子撒满全图，然后需要你慢慢开 1~2 米或原地转一圈让它收拢。继续？')) return;
+  const r = await fetch('/api/relocalize');
+  const j = await r.json();
+  toast(j.msg || (j.ok ? '已开始重定位' : '失败'), 4000);
+}
+async function saveMap(){
+  const r = await fetch('/api/save_map');
+  const j = await r.json();
+  toast(j.msg || '已开始存图');
+}
+
+/* ---------------- 视频流自动重连 ---------------- */
+function startStream(){
+  const img = el('view');
+  img.onerror = ()=>{
+    el('offline').style.display = 'grid';
+    el('offdetail').textContent = '1 秒后重试 · ' + new Date().toLocaleTimeString();
+    setTimeout(()=>{ img.src = '/stream?t=' + Date.now(); }, 1000);
+  };
+  img.onload = ()=>{ el('offline').style.display = 'none'; };
+  img.src = '/stream?t=' + Date.now();
+}
+startStream();
+poll();
+</script>
+</body>
+</html>
