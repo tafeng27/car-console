@@ -640,16 +640,20 @@ class Handler(BaseHTTPRequestHandler):
             name = (q.get("name", [""])[0] or "").strip()
             if not name:
                 return self._json({"ok": False, "err": "名字不能为空"})
+            create = (q.get("create", ["0"])[0] or "0").strip() == "1"
             mode = self.monitor.mode()
             if mode not in ("mapping", "localize"):
                 return self._json({"ok": False, "err": "请启动建图或定位后记录点位"})
+            if create and any(item['name'] == name for item in load_points()):
+                return self._json({"ok": False, "err": "点位名 %s 已经存在，换一个名字，或者用同名覆盖记录" % name})
             self.monitor.stop()
             with OPERATION_LOCK:
                 point = capture_point(self.monitor, name, mode)
                 points = [item for item in load_points() if item['name'] != name]
                 points.append(point)
                 write_points(POINTS_FILE, POINTS_DETAILS_FILE, points)
-            message = '已确认记录 %s：位置 %.6f, %.6f 米，朝向 %.3f 度；16份数据位置变化 %.2f 毫米、朝向变化 %.3f 度。' % (
+            message = ('已新建点位 %s：位置 %.6f, %.6f 米，朝向 %.3f 度；16份数据位置变化 %.2f 毫米、朝向变化 %.3f 度。' if create
+                       else '已覆盖记录 %s：位置 %.6f, %.6f 米，朝向 %.3f 度；16份数据位置变化 %.2f 毫米、朝向变化 %.3f 度。') % (
                 name, point['x'], point['y'], point['yaw'], point['position_spread_mm'], point['yaw_spread_deg'])
             return self._json({'ok': True, 'msg': message, 'mode': mode,
                                'point': light_point(point), 'points': [light_point(item) for item in points]})

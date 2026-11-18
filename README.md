@@ -49,7 +49,7 @@ python3 src/robot_navigation/scripts/web_control.py
 | `/api/state` | 位姿、雷达频率、底盘反馈、点位概要、导航状态 |
 | `/api/cmd?vx=&vy=&wz=` | 发速度，软件限幅 |
 | `/api/stop` | 零速 |
-| `/api/teach?name=` | 在当前位置记录点位（位置与朝向一起记） |
+| `/api/teach?name=&create=1` | 在当前位置记录点位（位置与朝向一起记）；`create=1` 时同名会被拒绝，用于新建点位 |
 | `/api/teach/heading?name=&note=` | 给已有点位追加一个朝向 |
 | `/api/headings/delete?name=&index=` | 删除某个朝向 |
 | `/api/points`、`/api/points/delete?name=` | 点位列表与删除 |
@@ -87,6 +87,7 @@ python3 src/robot_navigation/scripts/web_control.py
 - 顶层字段复制第一个朝向，旧代码按单朝向读取不会坏
 - 点位坐标 `x`、`y` 取所有朝向的均值
 - 到点复核时会把该点位的每个朝向各匹配一次，取内点比例最高的那份
+- 网页上“新建点位”遇到同名会拒绝，“同名覆盖记录”才会改写已有点位；`session` 字段记录点位所属的建图会话，写入时自动沿用
 
 `map/taught_points.yaml` 只有 `名字: [x, y]`，供其他程序快速读取坐标；两份文件由 `teaching_capture.write_points` 同时写入。
 

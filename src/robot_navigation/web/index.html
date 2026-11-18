@@ -142,14 +142,18 @@
            border-radius:8px;padding:7px 10px;font-size:12px;margin-bottom:8px"></div>
       <div class="teach">
         <input id="name" placeholder="点位名，例如 step1" autocomplete="off">
-        <button onclick="teach()">记录点位</button>
+        <button onclick="teach(true)">新建点位</button>
       </div>
       <div class="teach">
         <input id="note" placeholder="朝向备注，例如 正对仪表（可空）" autocomplete="off">
         <button onclick="addHeading()" style="background:#1f6fb2">加朝向</button>
       </div>
+      <div class="teach" style="margin:0 0 8px">
+        <button onclick="teach(false)" style="flex:1;background:#2a2f3a;border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:7px;font-size:12.5px;font-weight:400">同名覆盖记录</button>
+      </div>
       <div class="hint" style="margin:-2px 0 8px">
-        一个点位可以有多个朝向：把车停到点位、转到想要的角度，点“加朝向”。名字框里填已有点位名即可追加。
+        “新建点位”遇到同名会拒绝，避免覆盖已有的点；“同名覆盖记录”用于把已在列表里的点重新记到当前位置。<br>
+        一个点位可以有多个朝向：把车停到点位、转到想要的角度，点“加朝向”。
       </div>
       <div style="display:flex;gap:6px">
         <button onclick="saveMap()" style="flex:1;background:#2a2f3a;border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:7px;cursor:pointer;font-size:12.5px">存一版地图</button>
@@ -354,13 +358,13 @@ el('pts').addEventListener('click', ev=>{
 });
 
 /* ---------------- 定点 ---------------- */
-async function teach(){
+async function teach(create){
   const name = el('name').value.trim();
   if (!name){ toast('先输入点名'); return; }
-  const r = await fetch('/api/teach?name=' + encodeURIComponent(name));
+  const r = await fetch('/api/teach?name=' + encodeURIComponent(name) + (create ? '&create=1' : ''));
   const j = await r.json();
-  if (j.ok){ toast(j.msg || ('已记录 ' + name), 3000); renderPoints(j.points || S.points); }
-  else toast('失败：' + (j.err || '未知'), 3000);
+  if (j.ok){ toast(j.msg || ((create ? '已新建 ' : '已覆盖 ') + name), 4000); renderPoints(j.points || S.points); }
+  else toast('失败：' + (j.err || '未知'), 4000);
 }
 async function addHeading(){
   const name = el('name').value.trim();

@@ -45,6 +45,9 @@ def rebuild_point(point, headings):
 
 
 def write_points(points_file, details_file, points, session=None):
+    if session is None and os.path.exists(details_file):
+        with open(details_file, encoding='utf-8') as source:
+            session = json.load(source).get('session')
     coordinates = {point['name']: [point['x'], point['y']] for point in points}
     with open(points_file + '.new', 'w', encoding='utf-8') as target:
         yaml.safe_dump(coordinates, target, allow_unicode=True, sort_keys=False)
