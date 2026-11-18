@@ -140,17 +140,21 @@
       <h3>定点（当前位置）</h3>
       <div id="modewarn" style="display:none;background:#4a3a12;border:1px solid #7a5f1a;color:#ffd88a;
            border-radius:8px;padding:7px 10px;font-size:12px;margin-bottom:8px"></div>
-      <div class="teach">
-        <input id="name" placeholder="点位名，例如 step1" autocomplete="off">
-        <button onclick="teach(true)">新建点位</button>
-      </div>
-      <div class="teach">
-        <input id="note" placeholder="朝向备注，例如 正对仪表（可空）" autocomplete="off">
-        <button onclick="addHeading()" style="background:#1f6fb2">加朝向</button>
-      </div>
-      <div class="teach" style="margin:0 0 8px">
-        <button onclick="teach(false)" style="flex:1;background:#2a2f3a;border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:7px;font-size:12.5px;font-weight:400">同名覆盖记录</button>
-      </div>
+      <form id="teachform" autocomplete="off" onsubmit="return false">
+        <div class="teach">
+          <input id="name" name="pointName" placeholder="点位名，可以直接打新名字" autocomplete="off"
+                 autocapitalize="off" autocorrect="off" spellcheck="false">
+          <button type="button" onclick="teach(true)">新建点位</button>
+        </div>
+        <div class="teach">
+          <input id="note" name="headingNote" placeholder="朝向备注，例如 正对仪表（可空）" autocomplete="off"
+                 autocapitalize="off" autocorrect="off" spellcheck="false">
+          <button type="button" onclick="addHeading()" style="background:#1f6fb2">加朝向</button>
+        </div>
+        <div class="teach" style="margin:0 0 8px">
+          <button type="button" onclick="teach(false)" style="flex:1;background:#2a2f3a;border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:7px;font-size:12.5px;font-weight:400">同名覆盖记录</button>
+        </div>
+      </form>
       <div class="hint" style="margin:-2px 0 8px">
         “新建点位”遇到同名会拒绝，避免覆盖已有的点；“同名覆盖记录”用于把已在列表里的点重新记到当前位置。<br>
         一个点位可以有多个朝向：把车停到点位、转到想要的角度，点“加朝向”。
@@ -185,6 +189,10 @@
 const S = { mode:'hold', keys:{f:0,b:0,l:0,r:0,sl:0,sr:0}, lastCmd:0, alive:false, points:[] };
 const el = id => document.getElementById(id);
 const send = params => fetch('/api/cmd?' + new URLSearchParams(params)).catch(()=>{});
+
+/* 浏览器的历史输入下拉按字段名缓存，每次加载换一个名字，就不会弹出来挡住输入 */
+el('name').name = 'pn_' + Math.random().toString(36).slice(2);
+el('note').name = 'hn_' + Math.random().toString(36).slice(2);
 
 function toast(msg, ms=1800){
   const t = el('toast'); t.textContent = msg; t.classList.add('show');
